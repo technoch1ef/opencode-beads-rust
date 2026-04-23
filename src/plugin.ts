@@ -4,7 +4,7 @@
  * Integrates the beads issue tracker with OpenCode.
  *
  * Features:
- * - Context injection via `bd prime` on session start and after compaction
+ * - Context injection via `br prime` on session start and after compaction
  * - Commands parsed from beads command definitions
  * - Task agent for autonomous issue completion
  */
@@ -53,8 +53,8 @@ async function getSessionContext(
 /**
  * Inject beads context into a session.
  *
- * Runs `bd prime` and injects the output along with CLI guidance.
- * Silently skips if bd is not installed or not initialized.
+ * Runs `br prime` and injects the output along with CLI guidance.
+ * Silently skips if br is not installed or not initialized.
  */
 async function injectBeadsContext(
   client: OpencodeClient,
@@ -63,7 +63,7 @@ async function injectBeadsContext(
   context?: { model?: { providerID: string; modelID: string }; agent?: string }
 ): Promise<void> {
   try {
-    const primeOutput = await $`bd prime`.text();
+    const primeOutput = await $`br prime`.text();
 
     if (!primeOutput || primeOutput.trim() === "") {
       return;
@@ -87,7 +87,7 @@ ${BEADS_GUIDANCE}`;
       },
     });
   } catch {
-    // Silent skip if bd prime fails (not installed or not initialized)
+    // Silent skip if br prime fails (not installed or not initialized)
   }
 }
 
@@ -103,7 +103,7 @@ export const BeadsPlugin: Plugin = async ({ client, $ }) => {
    * Queries the agent list from OpenCode and checks whether the agent is a
    * subagent. Subagents (like `explore` and `general`) are invoked for
    * specific tasks and shouldn't be polluted with beads context — it wastes
-   * tokens and can cause them to attempt pointless bd/git operations.
+   * tokens and can cause them to attempt pointless br/git operations.
    *
    * Primary agents (`build`, `plan`) are user-facing and benefit from issue
    * awareness. The plugin's own `beads-task-agent` is an explicit exception.

@@ -86,26 +86,26 @@ async function listVendorFiles(relativePath: string): Promise<string[]> {
 
 const BEADS_CLI_USAGE = `## CLI Usage
 
-**IMPORTANT:** There is no \`bd\` tool in this environment. You must use the \`bash\` tool to run the \`bd\` command.
+**IMPORTANT:** There is no \`br\` tool in this environment. You must use the \`bash\` tool to run the \`br\` command.
 
-**Do not try to call a tool named \`bd\` directly.** It does not exist.
+**Do not try to call a tool named \`br\` directly.** It does not exist.
 **Do not try to call MCP tools (like \`ready\`, \`create\`) directly.** They do not exist.
 
 Instead, use the \`bash\` tool for all beads operations:
 
-- \`bd init [prefix]\` - Initialize beads
-- \`bd ready --json\` - List ready tasks
-- \`bd show <id> --json\` - Show task details
-- \`bd create "title" -t bug|feature|task -p 0-4 --json\` - Create issue
-- \`bd update <id> --status in_progress --json\` - Update status
-- \`bd close <id> --reason "message" --json\` - Close issue
-- \`bd reopen <id> --json\` - Reopen issue
-- \`bd dep add <from> <to> --type blocks|discovered-from --json\` - Add dependency
-- \`bd list --status open --json\` - List issues
-- \`bd blocked --json\` - Show blocked issues
-- \`bd stats --json\` - Show statistics
+- \`br init [prefix]\` - Initialize beads
+- \`br ready --json\` - List ready tasks
+- \`br show <id> --json\` - Show task details
+- \`br create "title" -t bug|feature|task -p 0-4 --json\` - Create issue
+- \`br update <id> --status in_progress --json\` - Update status
+- \`br close <id> --reason "message" --json\` - Close issue
+- \`br reopen <id> --json\` - Reopen issue
+- \`br dep add <from> <to> --type blocks|discovered-from --json\` - Add dependency
+- \`br list --status open --json\` - List issues
+- \`br blocked --json\` - Show blocked issues
+- \`br stats --json\` - Show statistics
 
-If a tool is not listed above, try \`bd <tool> --help\`.
+If a tool is not listed above, try \`br <tool> --help\`.
 
 Always use \`--json\` flag for structured output.`;
 
@@ -116,7 +116,7 @@ You are called as a subagent. Your **final message** is what gets returned to th
 **Your purpose:** Handle both status queries AND autonomous task completion.
 
 **For status/overview requests** ("what's next", "show me blocked work"):
-- Run the necessary \`bd\` commands to gather data
+- Run the necessary \`br\` commands to gather data
 - Process the JSON output internally
 - Return a **concise, human-readable summary** with key information
 - Use tables or lists to organize information clearly
@@ -139,15 +139,15 @@ ${BEADS_CLI_USAGE}
 - Exploring the issue graph (ready + in-progress + blocked queries)
 - Finding and completing ready work
 - Working through multiple issues in sequence
-- Any request that would require 2+ bd commands
+- Any request that would require 2+ br commands
 
 **Use CLI directly ONLY for single, atomic operations:**
-- Creating exactly one issue: \`bd create "title" ...\`
-- Closing exactly one issue: \`bd close <id> ...\`
-- Updating one specific field: \`bd update <id> --status ...\`
+- Creating exactly one issue: \`br create "title" ...\`
+- Closing exactly one issue: \`br close <id> ...\`
+- Updating one specific field: \`br update <id> --status ...\`
 - When user explicitly requests a specific command
 
-**Why delegate?** The agent processes multiple commands internally and returns only a concise summary. Running bd commands directly dumps hundreds of lines of raw JSON into context, wasting tokens and making the conversation harder to follow.
+**Why delegate?** The agent processes multiple commands internally and returns only a concise summary. Running br commands directly dumps hundreds of lines of raw JSON into context, wasting tokens and making the conversation harder to follow.
 </beads-guidance>`;
 
 export async function loadAgent(): Promise<Config["agent"]> {
