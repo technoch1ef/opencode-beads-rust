@@ -1,17 +1,32 @@
 ---
-description: Synchronize issues (deprecated — use bd dolt push/pull)
-argument-hint: (deprecated)
+description: Export issues to JSONL — must be followed by manual git commit
+argument-hint: [--flush-only]
 ---
 
-`bd sync` is **deprecated** and is now a no-op.
+`br sync --flush-only` exports issues from the SQLite database to `.beads/` JSONL files.
 
-## Use Dolt commands instead
+**Note:** `br` is non-invasive and never executes git commands. After `br sync --flush-only`, you must manually run `git add .beads/ && git commit`.
 
-- **Push to remote**: `bd dolt push`
-- **Pull from remote**: `bd dolt pull`
-- **Commit pending changes**: `bd dolt commit`
-- **Check connection**: `bd dolt show`
+## Usage
 
-## Note
+```bash
+br sync --flush-only
+git add .beads/
+git commit -m "sync beads"
+```
 
-Most users should rely on the Dolt server's automatic sync (with `dolt.auto-commit` enabled) instead of running manual sync commands.
+## Why `--flush-only`
+
+The `--flush-only` flag exports the database to JSONL without launching a background daemon or running git. This is the correct mode for agent and CI workflows.
+
+## Session Close Protocol
+
+Run this before ending any session:
+
+```bash
+git status
+git add <files>
+br sync --flush-only
+git add .beads/
+git commit -m "sync beads"
+```

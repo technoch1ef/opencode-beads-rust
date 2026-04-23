@@ -5,15 +5,15 @@ argument-hint: <query> [--status] [--label] [--assignee]
 
 Search issues across title, description, and ID with a simple text query.
 
-**Note:** The `search` command is optimized for quick text searches and uses less context than `list` when accessed via MCP. For advanced filtering options, use `bd list`.
+**Note:** The `search` command is optimized for quick text searches and uses less context than `list` when accessed via MCP. For advanced filtering options, use `br list`.
 
 ## Basic Usage
 
 ```bash
-bd search "authentication bug"
-bd search login --status open
-bd search database --label backend
-bd search "bd-5q"  # Search by partial issue ID
+br search "authentication bug"
+br search login --status open
+br search database --label backend
+br search "br-5q"  # Search by partial issue ID
 ```
 
 ## How It Works
@@ -23,7 +23,7 @@ The search command finds issues where your query appears in **any** of:
 - Issue description
 - Issue ID (supports partial matching)
 
-Unlike `bd list`, which requires you to specify which field to search, `bd search` automatically searches all text fields, making it faster and more intuitive for exploratory searches.
+Unlike `br list`, which requires you to specify which field to search, `br search` automatically searches all text fields, making it faster and more intuitive for exploratory searches.
 
 ## Filters
 
@@ -43,61 +43,61 @@ Unlike `bd list`, which requires you to specify which field to search, `bd searc
 ### Basic Search
 ```bash
 # Find all issues mentioning "auth" or "authentication"
-bd search auth
+br search auth
 
 # Search for performance issues
-bd search performance --status open
+br search performance --status open
 
 # Find database-related bugs
-bd search database --type bug
+br search database --type bug
 ```
 
 ### Filtered Search
 ```bash
 # Find open backend issues about login
-bd search login --status open --label backend
+br search login --status open --label backend
 
 # Search Alice's tasks for "refactor"
-bd search refactor --assignee alice --type task
+br search refactor --assignee alice --type task
 
 # Find recent bugs (limited to 10 results)
-bd search bug --status open --limit 10
+br search bug --status open --limit 10
 ```
 
 ### Sorted Output
 ```bash
 # Search bugs sorted by priority (P0 first)
-bd search bug --sort priority
+br search bug --sort priority
 
 # Search features sorted by most recently updated
-bd search feature --sort updated
+br search feature --sort updated
 
 # Search issues sorted by priority, lowest first
-bd search refactor --sort priority --reverse
+br search refactor --sort priority --reverse
 ```
 
 ### JSON Output
 ```bash
 # Get JSON results for programmatic use
-bd search "api error" --json
+br search "api error" --json
 
 # Use with jq for advanced filtering
-bd search memory --json | jq '.[] | select(.priority <= 1)'
+br search memory --json | jq '.[] | select(.priority <= 1)'
 ```
 
-## Comparison with bd list
+## Comparison with br list
 
 | Command | Best For | Default Limit | Context Usage |
 |---------|----------|---------------|---------------|
-| `bd search` | Quick text searches, exploratory queries | 50 | Low (efficient for LLMs) |
-| `bd list` | Advanced filtering, precise queries | None | High (all results) |
+| `br search` | Quick text searches, exploratory queries | 50 | Low (efficient for LLMs) |
+| `br list` | Advanced filtering, precise queries | None | High (all results) |
 
-**When to use `bd search`:**
+**When to use `br search`:**
 - You want to find issues quickly by keyword
 - You're exploring the issue database
 - You're using an LLM/MCP and want to minimize context usage
 
-**When to use `bd list`:**
+**When to use `br list`:**
 - You need advanced filters (date ranges, priority ranges, etc.)
 - You want all results without a limit
 - You need special output formats (digraph, dot)

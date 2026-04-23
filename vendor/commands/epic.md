@@ -18,10 +18,10 @@ Manage epics (large features composed of multiple issues).
 
 ## Epic Workflow
 
-1. Create epic: `bd create "Large Feature" -t epic -p 1`
-2. Link subtasks: `bd dep add bd-20 bd-10 --type parent-child` (task bd-20 is child of epic bd-10)
-   - Or at creation: `bd create "Subtask title" -t task --parent bd-10`
-3. Track progress: `bd epic status`
-4. Auto-close when done: `bd epic close-eligible`
+1. Create epic: `br create "Large Feature" -t epic -p 1`
+2. Link subtasks: `br dep add br-20 br-10 --type parent-child` (task br-20 is child of epic br-10)
+   - Or at creation: `br create "Subtask title" -t task --parent br-10`
+3. Track progress: `br epic status`
+4. Auto-close when done: `br epic close-eligible`
 
 Epics use parent-child dependencies to track subtasks.

@@ -9,7 +9,7 @@ Decisions use `--type decision`. The description field holds the structured deci
 
 ## Record a Decision
 
-When the user wants to record a decision (or you invoke `bd decision record`):
+When the user wants to record a decision (or you invoke `br decision record`):
 
 1. Gather the following (ask if not provided):
    - **Title**: Short summary of what was decided (required)
@@ -21,7 +21,7 @@ When the user wants to record a decision (or you invoke `bd decision record`):
 2. Create the issue with structured description:
 
 ```bash
-bd create "<title>" --type decision \
+br create "<title>" --type decision \
   --description "$(cat <<'EOF'
 ## Decision
 
@@ -45,7 +45,7 @@ EOF
 
 3. If `--affects` issue IDs were provided, link them:
 ```bash
-bd dep add <decision-id> <affected-id> --type related
+br dep add <decision-id> <affected-id> --type related
 ```
 
 4. Show the created decision to the user.
@@ -53,23 +53,23 @@ bd dep add <decision-id> <affected-id> --type related
 ## List Decisions
 
 ```bash
-bd list --type decision
+br list --type decision
 ```
 
 To see all decisions including closed/superseded:
 ```bash
-bd list --type decision --all
+br list --type decision --all
 ```
 
 ## Show a Decision
 
 ```bash
-bd show <decision-id>
+br show <decision-id>
 ```
 
 Include comments for discussion history:
 ```bash
-bd comments <decision-id>
+br comments <decision-id>
 ```
 
 ## Supersede a Decision
@@ -79,28 +79,28 @@ When a decision is replaced by a new one:
 1. Record the new decision (as above)
 2. Link the new decision to the old one:
    ```bash
-   bd dep add <new-id> <old-id> --type related
+   br dep add <new-id> <old-id> --type related
    ```
 3. Add a comment on the old decision:
    ```bash
-   bd comments add <old-id> "Superseded by <new-id>: <brief reason>"
+   br comments add <old-id> "Superseded by <new-id>: <brief reason>"
    ```
 4. Close the old decision:
    ```bash
-   bd close <old-id> --reason "Superseded by <new-id>"
+   br close <old-id> --reason "Superseded by <new-id>"
    ```
 
 ## Add Context to an Existing Decision
 
 Use comments to append discussion, implementation notes, or revisit rationale:
 ```bash
-bd comments add <decision-id> "Implementation note: ..."
+br comments add <decision-id> "Implementation note: ..."
 ```
 
 ## Search Decisions
 
 ```bash
-bd search "keyword" --type decision
+br search "keyword" --type decision
 ```
 
 ## Conventions

@@ -43,7 +43,7 @@ The `--format mermaid` option outputs the dependency tree as a Mermaid.js flowch
 
 **Example:**
 ```bash
-bd dep tree bd-1 --format mermaid
+br dep tree br-1 --format mermaid
 ```
 
 Output can be embedded in markdown:
@@ -51,10 +51,10 @@ Output can be embedded in markdown:
 ````markdown
 ```mermaid
 flowchart TD
-  bd-1["◧ bd-1: Main task"]
-  bd-2["☑ bd-2: Subtask"]
+  br-1["◧ br-1: Main task"]
+  br-2["☑ br-2: Subtask"]
 
-  bd-1 --> bd-2
+  br-1 --> br-2
 ```
 ````
 
@@ -71,23 +71,23 @@ The diagram colors are determined by your Mermaid theme (default, dark, forest, 
 
 ## Examples
 
-- `bd dep add bd-10 bd-20 --type blocks`: bd-10 depends on bd-20 (bd-20 blocks bd-10)
-- `bd dep tree bd-20`: Show what blocks bd-20 (dependency tree going UP)
-- `bd dep tree bd-1 --reverse`: Show what was discovered from bd-1 (dependent tree going DOWN)
-- `bd dep tree bd-1 --reverse --max-depth 3`: Show discovery tree with depth limit
-- `bd dep tree bd-20 --format mermaid > tree.md`: Generate Mermaid diagram for documentation
-- `bd dep cycles`: Check for circular dependencies
+- `br dep add br-10 br-20 --type blocks`: br-10 depends on br-20 (br-20 blocks br-10)
+- `br dep tree br-20`: Show what blocks br-20 (dependency tree going UP)
+- `br dep tree br-1 --reverse`: Show what was discovered from br-1 (dependent tree going DOWN)
+- `br dep tree br-1 --reverse --max-depth 3`: Show discovery tree with depth limit
+- `br dep tree br-20 --format mermaid > tree.md`: Generate Mermaid diagram for documentation
+- `br dep cycles`: Check for circular dependencies
 
 ## Reverse Mode: Discovery Trees
 
 The `--reverse` flag inverts the tree direction to show **dependents** instead of **dependencies**:
 
-**Normal mode** (`bd dep tree ISSUE`):
+**Normal mode** (`br dep tree ISSUE`):
 - Shows what blocks you (dependency tree)
 - Answers: "What must I complete before I can work on this?"
 - Tree flows **UP** toward prerequisites
 
-**Reverse mode** (`bd dep tree ISSUE --reverse`):
+**Reverse mode** (`br dep tree ISSUE --reverse`):
 - Shows what was discovered from you (dependent tree)
 - Answers: "What work was discovered while working on this?"
 - Tree flows **DOWN** from goal to discovered tasks

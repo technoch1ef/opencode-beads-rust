@@ -43,18 +43,18 @@ List beads issues with optional filtering.
 ## Examples
 
 ### Basic Usage
-- `bd list --status open --priority 1`: High priority open issues
-- `bd list --type bug --assignee alice`: Alice's assigned bugs
-- `bd list --label backend,needs-review`: Backend issues needing review
-- `bd list --title "auth"`: Issues with "auth" in the title
+- `br list --status open --priority 1`: High priority open issues
+- `br list --type bug --assignee alice`: Alice's assigned bugs
+- `br list --label backend,needs-review`: Backend issues needing review
+- `br list --title "auth"`: Issues with "auth" in the title
 
 ### Advanced Usage
-- `bd list --title-contains "auth" --status open`: Search open issues for auth-related work
-- `bd list --priority-min 0 --priority-max 1`: Critical and high priority issues only
-- `bd list --created-after 2025-01-01 --status open`: Recent open issues
-- `bd list --empty-description --status open`: Open issues missing descriptions
-- `bd list --no-assignee --priority 1`: High priority unassigned work
-- `bd list --desc-contains "TODO" --notes-contains "review"`: Find items needing attention
+- `br list --title-contains "auth" --status open`: Search open issues for auth-related work
+- `br list --priority-min 0 --priority-max 1`: Critical and high priority issues only
+- `br list --created-after 2025-01-01 --status open`: Recent open issues
+- `br list --empty-description --status open`: Open issues missing descriptions
+- `br list --no-assignee --priority 1`: High priority unassigned work
+- `br list --desc-contains "TODO" --notes-contains "review"`: Find items needing attention
 
 ## Output Formats
 

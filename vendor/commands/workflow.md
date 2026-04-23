@@ -39,7 +39,7 @@ After closing, check if other work became ready:
 - **Priority levels**: 0=critical, 1=high, 2=medium, 3=low, 4=backlog
 - **Issue types**: bug, feature, task, epic, chore
 - **Dependencies**: Use `blocks` for hard dependencies, `related` for soft links
-- **Auto-sync**: Changes are stored in Dolt and synced via `bd dolt push` / `bd dolt pull`
+- **Manual-sync**: `br` is non-invasive — commit `.beads/` to git manually after `br sync --flush-only`
 
 ## Available Commands
 - `/beads:ready` - Find unblocked work
@@ -53,6 +53,6 @@ After closing, check if other work became ready:
 Use these via the beads MCP server:
 - `ready`, `list`, `show`, `create`, `claim`, `update`, `close`
 - `dep` (manage dependencies), `blocked`, `stats`
-- `init` (initialize bd in a project)
+- `init` (initialize br in a project)
 
-For more details, see the beads README at: https://github.com/steveyegge/beads
+For more details, see the beads README at: https://github.com/Dicklesworthstone/beads_rust
