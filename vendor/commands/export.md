@@ -18,4 +18,4 @@ Issues are sorted by ID for consistent diffs, making git diffs readable.
 SQLite is the primary storage backend, so manual export is rarely needed. Use `br export` when you need:
 - A JSONL snapshot for backup
 - Data migration to another system
-- Sharing issues outside the Dolt workflow
+- Sharing issues outside the beads workflow
