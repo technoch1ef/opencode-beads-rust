@@ -1,72 +1,38 @@
-# opencode-beads
+# opencode-beads-rust
 
-[Beads](https://github.com/steveyegge/beads) issue tracker integration for [OpenCode](https://opencode.ai).
+OpenCode plugin for beads issue tracking via the `br` (beads_rust) CLI.
 
-> [!NOTE]
-> This plugin is intentionally small in scope. The [beads](https://github.com/steveyegge/beads) project is moving quickly and is a moving target — any additional layers on top of it add churn.
->
-> To minimize maintenance, this plugin defers to beads and limits its scope to bug fixes and syncing upstream vendor plugin content. Feature requests and additional customization are generally out of scope.
->
-> If you want to customize behavior, the plugin surface area is small — forking or copying it locally is encouraged.
+## Requirements
 
-## Installation
+- [`br` (beads_rust)](https://github.com/Dicklesworthstone/beads_rust#installation) binary on `PATH`
+- Node >= 20
 
-Install the beads CLI:
+## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
+npm i -D @technoch1ef/opencode-beads-rust
 ```
 
-See the [beads installation guide](https://github.com/steveyegge/beads/blob/main/docs/INSTALLING.md) for alternative methods (Homebrew, Windows, AUR, etc.).
-
-Add to your OpenCode config (`~/.config/opencode/opencode.json`):
+Then add to your `~/.config/opencode/opencode.json`:
 
 ```json
 {
-  "plugin": ["opencode-beads"]
+  "plugin": ["@technoch1ef/opencode-beads-rust"]
 }
 ```
 
 Restart OpenCode and you're ready to go.
 
-Optionally, pin to a specific version for stability:
-
-```json
-{
-  "plugin": ["opencode-beads@0.6.0"]
-}
-```
-
-OpenCode fetches unpinned plugins from npm on each startup; pinned versions are cached and require a manual version bump to update.
-
 ## Features
 
-- **Context injection** - Automatically runs `bd prime` on session start and after compaction, keeping your agent aware of current issues
-- **Commands** - All beads operations available as `/bd-*` commands
-- **Task agent** - Autonomous issue completion via `beads-task-agent` subagent
+- **Context injection** — Automatically runs `br prime` on session start and after compaction, keeping your agent aware of current issues
+- **Commands** — All beads operations available as `/beads:*` slash commands
+- **Task agent** — Autonomous issue completion via the `beads-task-agent` subagent
 
-## Usage
+## Attribution
 
-This plugin brings beads into OpenCode. For learning how to use beads itself - workflows, commands, best practices - see the [beads documentation](https://github.com/steveyegge/beads).
-
-The plugin automatically injects beads context on session start and after compaction, so your agent stays oriented.
-
-## Commands
-
-Commands are available as `/bd-*` and mirror the `bd` CLI. See the [beads documentation](https://github.com/steveyegge/beads) for the full command reference.
-
-## Agent
-
-### beads-task-agent
-
-A subagent for autonomous issue completion. Designed to work through issues independently, updating status and handling dependencies.
+Forked from [`opencode-beads`](https://github.com/joshuadavidthomas/opencode-beads) (MIT, by Josh Thomas). This fork swaps the `bd` Python CLI for `br` (beads_rust).
 
 ## License
 
-opencode-beads is licensed under the MIT license. See the [`LICENSE`](LICENSE) file for more information.
-
----
-
-opencode-beads is not built by, or affiliated with, the OpenCode team.
-
-OpenCode is ©2025 Anomaly.
+MIT
