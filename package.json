@@ -1,0 +1,45 @@
+{
+  "name": "@technoch1ef/opencode-beads-rust",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "OpenCode plugin: beads issue tracking via the br (beads_rust) CLI. Fork of opencode-beads.",
+  "main": "src/plugin.ts",
+  "files": [
+    "src",
+    "vendor",
+    "LICENSE",
+    "README.md"
+  ],
+  "keywords": [
+    "opencode",
+    "plugin",
+    "beads",
+    "beads-rust",
+    "br",
+    "agent"
+  ],
+  "author": "technoch1ef",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/technoch1ef/opencode-beads-rust.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "bun x tsc --noEmit",
+    "test": "bun test"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=1.14"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.14",
+    "@types/bun": "latest",
+    "typescript": "^5.8"
+  }
+}
