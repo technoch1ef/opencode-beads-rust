@@ -92,28 +92,73 @@ ${BEADS_GUIDANCE}`;
 }
 
 
-export const BeadsPlugin: Plugin = async ({ client, $ }) => {
+/**
+ * Plugin options (passed via the tuple form in opencode.json):
+ *
+ * ```jsonc
+ * "plugin": [
+ *   ["@technoch1ef/opencode-beads-rust", { "inject": ["mayor", "worker"] }]
+ * ]
+ * ```
+ */
+export interface BeadsPluginOptions {
+  /**
+   * Controls which agents receive beads context injection (`br prime`
+   * output + CLI guidance) at session start and after compaction.
+   *
+   * - `"primary"` (default) — inject for all primary/all-mode agents
+   *   (legacy behavior; subagents are always skipped)
+   * - `"none"` — never inject (commands and the task agent stay registered)
+   * - `string[]` — inject only for the listed agent names
+   *
+   * The plugin's own `beads-task-agent` always receives context.
+   */
+  inject?: "primary" | "none" | string[];
+}
+
+/** Normalize the raw (untyped) plugin options from opencode config. */
+function parseInjectOption(raw: unknown): "primary" | "none" | string[] {
+  if (raw === "none") return "none";
+  if (Array.isArray(raw)) return raw.filter((a): a is string => typeof a === "string");
+  return "primary";
+}
+
+export const BeadsPlugin: Plugin = async ({ client, $ }, options) => {
   const [commands, agents] = await Promise.all([loadCommands(), loadAgent()]);
+
+  const inject = parseInjectOption((options as BeadsPluginOptions | undefined)?.inject);
 
   const injectedSessions = new Set<string>();
 
   /**
    * Check if an agent should receive beads context injection.
    *
-   * Queries the agent list from OpenCode and checks whether the agent is a
-   * subagent. Subagents (like `explore` and `general`) are invoked for
-   * specific tasks and shouldn't be polluted with beads context — it wastes
-   * tokens and can cause them to attempt pointless br/git operations.
+   * When `inject` is an allowlist or `"none"`, only the listed agents (plus
+   * the plugin's own `beads-task-agent`) receive context. Unknown/undefined
+   * agents are excluded — scoped configs must never leak beads context into
+   * agents that aren't explicitly allowed.
    *
-   * Primary agents (`build`, `plan`) are user-facing and benefit from issue
-   * awareness. The plugin's own `beads-task-agent` is an explicit exception.
+   * In the default `"primary"` mode, the agent list is queried from OpenCode
+   * and subagents (like `explore` and `general`) are skipped — they're
+   * invoked for specific tasks and shouldn't be polluted with beads context.
+   * It wastes tokens and can cause them to attempt pointless br/git
+   * operations. Primary agents (`build`, `plan`) are user-facing and benefit
+   * from issue awareness.
    *
    * Queries fresh each time rather than caching, since agents can change
    * mid-session (config edits, other plugins). This only runs once per
    * session (gated by injectedSessions), so the overhead is negligible.
    */
   async function shouldInject(agentName: string | undefined): Promise<boolean> {
-    if (!agentName || agentName === BEADS_TASK_AGENT) return true;
+    if (agentName === BEADS_TASK_AGENT) return true;
+
+    if (inject === "none") return false;
+    if (Array.isArray(inject)) {
+      return agentName !== undefined && inject.includes(agentName);
+    }
+
+    // Legacy "primary" mode
+    if (!agentName) return true;
 
     const response = await client.app.agents().catch(() => undefined);
     const agent = response?.data?.find((a) => a.name === agentName);
