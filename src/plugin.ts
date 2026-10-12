@@ -1,102 +1,70 @@
 /**
- * OpenCode Beads Plugin
+ * OpenCode Beads Plugin (OpenCode v2 plugin API)
  *
  * Integrates the beads issue tracker with OpenCode.
  *
  * Features:
- * - Context injection via `br prime` on session start and after compaction
+ * - Context injection: `br prime` output is added to the system prompt
+ *   (captured once per session, so it survives compaction)
  * - Commands parsed from beads command definitions
  * - Task agent for autonomous issue completion
  */
 
-import type { Plugin, PluginInput } from "@opencode-ai/plugin";
+import { execFile } from "node:child_process";
+import type { Plugin } from "@opencode-ai/plugin";
 import { BEADS_GUIDANCE, loadAgent, loadCommands } from "./vendor";
-
-type OpencodeClient = PluginInput["client"];
 
 /** Name of the plugin's own task agent. Always receives beads context. */
 const BEADS_TASK_AGENT = "beads-task-agent";
 
 /**
- * Get the current model/agent context for a session by querying messages.
- *
- * Mirrors OpenCode's internal lastModel() logic to find the most recent
- * user message. Used during event handling when we don't have direct access
- * to the current user message's context.
+ * Run `br prime` in `cwd` and build the beads context block.
+ * Returns undefined if br is not installed, not initialized, or prints nothing.
  */
-async function getSessionContext(
-  client: OpencodeClient,
-  sessionID: string
-): Promise<
-  { model?: { providerID: string; modelID: string }; agent?: string } | undefined
-> {
-  try {
-    const response = await client.session.messages({
-      path: { id: sessionID },
-      query: { limit: 50 },
-    });
-
-    if (response.data) {
-      for (const msg of response.data) {
-        if (msg.info.role === "user" && "model" in msg.info && msg.info.model) {
-          return { model: msg.info.model, agent: msg.info.agent };
-        }
-      }
-    }
-  } catch {
-    // On error, return undefined (let opencode use its default)
-  }
-
-  return undefined;
-}
-
-/**
- * Inject beads context into a session.
- *
- * Runs `br prime` and injects the output along with CLI guidance.
- * Silently skips if br is not installed or not initialized.
- */
-async function injectBeadsContext(
-  client: OpencodeClient,
-  $: PluginInput["$"],
-  sessionID: string,
-  context?: { model?: { providerID: string; modelID: string }; agent?: string }
-): Promise<void> {
-  try {
-    const primeOutput = await $`br prime`.text();
-
-    if (!primeOutput || primeOutput.trim() === "") {
-      return;
-    }
-
-    const beadsContext = `<beads-context>
-${primeOutput.trim()}
+function buildBeadsContext(cwd: string): Promise<string | undefined> {
+  return new Promise((resolve) => {
+    execFile("br", ["prime"], { cwd, maxBuffer: 5 * 1024 * 1024 }, (err, stdout) => {
+      const prime = String(stdout ?? "").trim();
+      if (err || !prime) return resolve(undefined);
+      resolve(`<beads-context>
+${prime}
 </beads-context>
 
-${BEADS_GUIDANCE}`;
-
-    // Inject content via noReply + synthetic
-    // Must pass model and agent to prevent mode/model switching
-    await client.session.prompt({
-      path: { id: sessionID },
-      body: {
-        noReply: true,
-        model: context?.model,
-        agent: context?.agent,
-        parts: [{ type: "text", text: beadsContext, synthetic: true }],
-      },
+${BEADS_GUIDANCE}`);
     });
-  } catch {
-    // Silent skip if br prime fails (not installed or not initialized)
-  }
+  });
 }
 
+const argsRegex = /(?:"[^"]*"|'[^']*'|[^\s"']+)/g;
+const quoteTrimRegex = /^["']|["']$/g;
+const placeholderRegex = /\$(\d+)/g;
+
+/**
+ * Expand `$1..$N` and `$ARGUMENTS` in a command template, mirroring
+ * OpenCode's markdown command semantics (the last placeholder takes the rest).
+ */
+export function expandTemplate(template: string, input: string): string {
+  const args = (input.match(argsRegex) ?? []).map((a) => a.replace(quoteTrimRegex, ""));
+  const placeholders = template.match(placeholderRegex) ?? [];
+  const last = Math.max(0, ...placeholders.map((p) => Number(p.slice(1))));
+  const expanded = template
+    .replaceAll(placeholderRegex, (_, index) => {
+      const position = Number(index);
+      if (position - 1 >= args.length) return "";
+      return position === last ? args.slice(position - 1).join(" ") : args[position - 1]!;
+    })
+    .replaceAll("$ARGUMENTS", input);
+  if (placeholders.length === 0 && !template.includes("$ARGUMENTS") && input.trim()) {
+    return `${expanded}\n\n${input}`.trim();
+  }
+  return expanded.trim();
+}
 
 /**
  * Plugin options (passed via the tuple form in opencode.json):
  *
  * ```jsonc
- * "plugin": [
+ * "plugins": [
  *   ["@technoch1ef/opencode-beads-rust", { "inject": ["mayor", "worker"] }]
  * ]
  * ```
@@ -104,10 +72,10 @@ ${BEADS_GUIDANCE}`;
 export interface BeadsPluginOptions {
   /**
    * Controls which agents receive beads context injection (`br prime`
-   * output + CLI guidance) at session start and after compaction.
+   * output + CLI guidance).
    *
    * - `"primary"` (default) — inject for all primary/all-mode agents
-   *   (legacy behavior; subagents are always skipped)
+   *   (subagents are always skipped)
    * - `"none"` — never inject (commands and the task agent stay registered)
    * - `string[]` — inject only for the listed agent names
    *
@@ -123,119 +91,84 @@ function parseInjectOption(raw: unknown): "primary" | "none" | string[] {
   return "primary";
 }
 
-export const BeadsPlugin: Plugin = async ({ client, $ }, options) => {
-  const [commands, agents] = await Promise.all([loadCommands(), loadAgent()]);
+export const BeadsPlugin: Plugin.Plugin = {
+  id: "beads-rust",
+  async setup(ctx) {
+    const [commands, agents] = await Promise.all([loadCommands(), loadAgent()]);
+    const inject = parseInjectOption((ctx.options as BeadsPluginOptions).inject);
 
-  const inject = parseInjectOption((options as BeadsPluginOptions | undefined)?.inject);
+    /** Beads context per session; `undefined` = skip. Captured once per session. */
+    const sessionContext = new Map<string, Promise<string | undefined>>();
 
-  const injectedSessions = new Set<string>();
+    /**
+     * Check if an agent should receive beads context injection.
+     *
+     * Allowlist / `"none"` modes only admit listed agents (plus the plugin's
+     * own `beads-task-agent`). In `"primary"` mode, subagents (like `explore`
+     * and `general`) are skipped — they're invoked for specific tasks and
+     * shouldn't waste tokens on beads context.
+     */
+    async function shouldInject(agentName: string): Promise<boolean> {
+      if (agentName === BEADS_TASK_AGENT) return true;
+      if (inject === "none") return false;
+      if (Array.isArray(inject)) return inject.includes(agentName);
 
-  /**
-   * Check if an agent should receive beads context injection.
-   *
-   * When `inject` is an allowlist or `"none"`, only the listed agents (plus
-   * the plugin's own `beads-task-agent`) receive context. Unknown/undefined
-   * agents are excluded — scoped configs must never leak beads context into
-   * agents that aren't explicitly allowed.
-   *
-   * In the default `"primary"` mode, the agent list is queried from OpenCode
-   * and subagents (like `explore` and `general`) are skipped — they're
-   * invoked for specific tasks and shouldn't be polluted with beads context.
-   * It wastes tokens and can cause them to attempt pointless br/git
-   * operations. Primary agents (`build`, `plan`) are user-facing and benefit
-   * from issue awareness.
-   *
-   * Queries fresh each time rather than caching, since agents can change
-   * mid-session (config edits, other plugins). This only runs once per
-   * session (gated by injectedSessions), so the overhead is negligible.
-   */
-  async function shouldInject(agentName: string | undefined): Promise<boolean> {
-    if (agentName === BEADS_TASK_AGENT) return true;
-
-    if (inject === "none") return false;
-    if (Array.isArray(inject)) {
-      return agentName !== undefined && inject.includes(agentName);
+      const agent = await ctx.agent.get({ agentID: agentName }).catch(() => undefined);
+      // Query failed — inject as safe fallback
+      if (!agent) return true;
+      return agent.data.mode === "primary" || agent.data.mode === "all";
     }
 
-    // Legacy "primary" mode
-    if (!agentName) return true;
-
-    const response = await client.app.agents().catch(() => undefined);
-    const agent = response?.data?.find((a) => a.name === agentName);
-    if (agent) {
-      return agent.mode === "primary" || agent.mode === "all";
+    async function resolveContext(sessionID: string, agent: string) {
+      if (!(await shouldInject(agent))) return undefined;
+      const session = await ctx.session.get({ sessionID }).catch(() => undefined);
+      return buildBeadsContext(session?.location.directory ?? ctx.location.directory);
     }
 
-    // Query failed or agent not in the list — inject as safe fallback
-    return true;
-  }
-
-  return {
-    "chat.message": async (_input, output) => {
-      const sessionID = output.message.sessionID;
-
-      // Skip if already injected this session
-      if (injectedSessions.has(sessionID)) return;
-
-      // Skip subagents — they're invoked for specific tasks and shouldn't
-      // waste tokens on beads context (except our own beads-task-agent)
-      if (!(await shouldInject(output.message.agent))) {
-        injectedSessions.add(sessionID);
-        return;
-      }
-
-      // Check if beads-context was already injected (handles plugin reload/reconnection)
-      try {
-        const existing = await client.session.messages({
-          path: { id: sessionID },
-        });
-
-        if (existing.data) {
-          const hasBeadsContext = existing.data.some(msg => {
-            const parts = (msg as any).parts || (msg.info as any).parts;
-            if (!parts) return false;
-            return parts.some((part: any) =>
-              part.type === 'text' && part.text?.includes('<beads-context>')
-            );
-          });
-
-          if (hasBeadsContext) {
-            injectedSessions.add(sessionID);
-            return;
-          }
+    const registrations = await Promise.all([
+      ctx.session.hook("context", async (input) => {
+        let pending = sessionContext.get(input.sessionID);
+        if (!pending) {
+          pending = resolveContext(input.sessionID, input.agent);
+          sessionContext.set(input.sessionID, pending);
         }
-      } catch {
-        // On error, proceed with injection
-      }
+        const text = await pending;
+        if (text) input.system.push({ type: "text", text });
+      }),
 
-      injectedSessions.add(sessionID);
+      ctx.command.transform((editor) => {
+        for (const [name, command] of Object.entries(commands)) {
+          editor.add({
+            name,
+            description: command.description,
+            async execute(input) {
+              await ctx.session.prompt({
+                ...input.prompt,
+                sessionID: input.sessionID,
+                text: expandTemplate(command.template, input.prompt.text),
+                delivery: input.delivery,
+              });
+            },
+          });
+        }
+      }),
 
-      // Use output.message which has the resolved model/agent values
-      // This ensures our injected noReply message has identical model/agent
-      // to the real user message, preventing mode/model switching
-      await injectBeadsContext(client, $, sessionID, {
-        model: output.message.model,
-        agent: output.message.agent,
-      });
-    },
+      ctx.agent.transform((editor) => {
+        for (const [id, agent] of Object.entries(agents)) {
+          // `update` creates the agent when it doesn't exist yet.
+          editor.update(id, (item) => {
+            item.description = agent.description;
+            item.system = agent.system;
+            item.mode = agent.mode;
+          });
+        }
+      }),
+    ]);
 
-    event: async ({ event }) => {
-      if (event.type === "session.compacted") {
-        const sessionID = event.properties.sessionID;
-        const context = await getSessionContext(client, sessionID);
-
-        // Skip re-injection for subagents
-        if (!(await shouldInject(context?.agent))) return;
-
-        await injectBeadsContext(client, $, sessionID, context);
-      }
-    },
-
-    config: async (config) => {
-      config.command = { ...config.command, ...commands };
-      config.agent = { ...config.agent, ...agents };
-    },
-  };
+    return async () => {
+      await Promise.all(registrations.map((r) => r.dispose()));
+    };
+  },
 };
 
 export default BeadsPlugin;

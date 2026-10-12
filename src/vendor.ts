@@ -8,7 +8,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Config } from "@opencode-ai/sdk";
 
 function getVendorDir(): string {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -86,12 +85,12 @@ async function listVendorFiles(relativePath: string): Promise<string[]> {
 
 const BEADS_CLI_USAGE = `## CLI Usage
 
-**IMPORTANT:** There is no \`br\` tool in this environment. You must use the \`bash\` tool to run the \`br\` command.
+**IMPORTANT:** There is no \`br\` tool in this environment. You must use the shell tool to run the \`br\` command.
 
 **Do not try to call a tool named \`br\` directly.** It does not exist.
 **Do not try to call MCP tools (like \`ready\`, \`create\`) directly.** They do not exist.
 
-Instead, use the \`bash\` tool for all beads operations:
+Instead, use the shell tool for all beads operations:
 
 - \`br init [prefix]\` - Initialize beads
 - \`br ready --json\` - List ready tasks
@@ -134,7 +133,7 @@ ${BEADS_CLI_USAGE}
 
 ## Agent Delegation
 
-**Default to the agent.** For ANY beads work involving multiple commands or context gathering, use the \`task\` tool with \`subagent_type: "beads-task-agent"\`:
+**Default to the agent.** For ANY beads work involving multiple commands or context gathering, delegate to the \`beads-task-agent\` subagent:
 - Status overviews ("what's next", "what's blocked", "show me progress")
 - Exploring the issue graph (ready + in-progress + blocked queries)
 - Finding and completing ready work
@@ -150,7 +149,18 @@ ${BEADS_CLI_USAGE}
 **Why delegate?** The agent processes multiple commands internally and returns only a concise summary. Running br commands directly dumps hundreds of lines of raw JSON into context, wasting tokens and making the conversation harder to follow.
 </beads-guidance>`;
 
-export async function loadAgent(): Promise<Config["agent"]> {
+export interface AgentDefinition {
+  description: string;
+  system: string;
+  mode: "subagent";
+}
+
+export interface CommandTemplate {
+  description: string;
+  template: string;
+}
+
+export async function loadAgent(): Promise<Record<string, AgentDefinition>> {
   const content = await readVendorFile("agents/task-agent.md");
   if (!content) return {};
 
@@ -163,15 +173,15 @@ export async function loadAgent(): Promise<Config["agent"]> {
   return {
     "beads-task-agent": {
       description,
-      prompt: BEADS_CLI_USAGE + "\n\n" + BEADS_SUBAGENT_CONTEXT + "\n\n" + parsed.body,
+      system: BEADS_CLI_USAGE + "\n\n" + BEADS_SUBAGENT_CONTEXT + "\n\n" + parsed.body,
       mode: "subagent",
     },
   };
 }
 
-export async function loadCommands(): Promise<Config["command"]> {
+export async function loadCommands(): Promise<Record<string, CommandTemplate>> {
   const files = await listVendorFiles("commands");
-  const commands: Config["command"] = {};
+  const commands: Record<string, CommandTemplate> = {};
 
   for (const file of files) {
     if (!file.endsWith(".md")) continue;

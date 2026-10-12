@@ -4,6 +4,7 @@ OpenCode plugin for beads issue tracking via the `br` (beads_rust) CLI.
 
 ## Requirements
 
+- OpenCode v2 (for OpenCode 1.x, use `@technoch1ef/opencode-beads-rust@0.2`)
 - [`br` (beads_rust)](https://github.com/Dicklesworthstone/beads_rust#installation) binary on `PATH`
 - Node >= 20
 
@@ -17,7 +18,7 @@ Then add to your `~/.config/opencode/opencode.json`:
 
 ```json
 {
-  "plugin": ["@technoch1ef/opencode-beads-rust"]
+  "plugins": ["@technoch1ef/opencode-beads-rust"]
 }
 ```
 
@@ -25,7 +26,7 @@ Restart OpenCode and you're ready to go.
 
 ## Features
 
-- **Context injection** — Automatically runs `br prime` on session start and after compaction, keeping your agent aware of current issues
+- **Context injection** — Runs `br prime` once per session and adds the output to the system prompt, keeping your agent aware of current issues (including after compaction)
 - **Commands** — All beads operations available as `/beads:*` slash commands
 - **Task agent** — Autonomous issue completion via the `beads-task-agent` subagent
 
@@ -35,7 +36,7 @@ Pass options using the tuple form of the plugin entry:
 
 ```json
 {
-  "plugin": [
+  "plugins": [
     ["@technoch1ef/opencode-beads-rust", { "inject": ["mayor", "worker", "guard", "inspector", "envoy"] }]
   ]
 }
@@ -44,7 +45,7 @@ Pass options using the tuple form of the plugin entry:
 ### `inject`
 
 Controls which agents receive beads context injection (`br prime` output + CLI
-guidance) at session start and after compaction:
+guidance):
 
 - `"primary"` (default) — inject for all primary/all-mode agents; subagents
   (`explore`, `general`, ...) are always skipped
